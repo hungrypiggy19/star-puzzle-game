@@ -4,7 +4,7 @@ export default class Game extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('game_bg', 'assets/game_bg.jpg');
+    this.load.image('Game_bg', 'assets/Game_bg.jpg');
     this.load.image('scene2sun', 'assets/scene2sun.png');
     this.load.image('scene2talk', 'assets/scene2talk.png');
     this.load.audio('bgm', 'assets/bgm/backgroundmusic.mp3');
@@ -25,7 +25,7 @@ export default class Game extends Phaser.Scene {
 
 
 
-    const bg = this.add.image(960, 540, 'game_bg');
+    const bg = this.add.image(960, 540, 'Game_bg');
     bg.setOrigin(0.5, 0.5);
 
     const scaleX = this.cameras.main.width / bg.width;

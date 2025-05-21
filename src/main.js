@@ -16,6 +16,7 @@ const config = {
     mode: Phaser.Scale.FIT,            // 等比拉伸
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
+   parent: 'phaser-game',
     scene: [ Start, GameScene, NextScene, Scene4, Nanfang, Beifang, Xifang, ],
 };
 

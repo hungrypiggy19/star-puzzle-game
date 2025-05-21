@@ -1,10 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>5.11</title>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
-  <script type="module" src="src/main.js"></script>
+  <meta charset="UTF-8" />
+  <title>星宿秘境</title>
+
+  <!-- 加载 Phaser 核心库 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <!-- 或者换成本地 phaser.js:
+       <script src="./phaser.js"></script>
+  -->
+
+  <!-- 你的入口脚本 -->
+  <script type="module" src="./src/main.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000; /* 可选：黑色背景 */
+    }
+    /* Phaser 会把 <canvas> 挂到这个容器 */
+    #phaser-game {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
 </head>
-<body></body>
+<body>
+  <div id="phaser-game"></div>
+</body>
 </html>
