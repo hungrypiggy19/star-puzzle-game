@@ -39,27 +39,27 @@ export default class Beifang extends Phaser.Scene {
 
         // —— 1. 在这里定义所有关的坐标和边集合 —— //
      this.levels = [
-    {coords: [ {x:368,y:138}, {x:423,y:160} ,{x:426,y:210},{x:388,y:215},{x:370,y:258},{x:387,y:314}],
-      solutionEdges: [ [0,1],[1,2],[2,3],[3,4],[4,5] ]
+    {coords: [ {x:892,y:194}, {x:903,y:670} ],
+      solutionEdges: [ [0,1]]
     },
-    {coords: [ {x:380,y:144},{x:384,y:209},{x:378,y:313},{x:334,y:179},{x:424,y:173},{x:432,y:280}],
-      solutionEdges: [ [0,1],[1,2],[1,3],[1,4],[2,5] ]
+    {coords: [ {x:941,y:178},{x:1163,y:467},{x:918,y:708}],
+      solutionEdges: [ [0,1],[1,2]]
     },
-    {coords: [ {x:374,y:153},{x:429,y:181},{x:430,y:256},{x:377,y:259}],
+    {coords: [ {x:789,y:175},{x:1104,y:693}],
+      solutionEdges: [ [0,1]]
+    },
+    {coords: [ {x:885,y:183},{x:1135,y:418},{x:1150,y:640},{x:953,y:651} ],
       solutionEdges: [ [0,1],[1,2],[2,3] ]
     },
-    {coords: [ {x:404,y:229},{x:403,y:365} ],
-      solutionEdges: [ [0,1] ]
+    {coords: [ {x:761,y:154},{x:924,y:177},{x:966,y:300},{x:854,y:364},{x:908,y:541},{x:1089,y:677}],
+      solutionEdges: [ [0,1],[1,2],[2,3],[3,4],[4,5] ]
     },
-    {coords: [ {x:368,y:173},{x:439,y:234},{x:393,y:282}],
-      solutionEdges: [ [0,1],[1,2] ]
+    {coords: [ {x:951,y:161},{x:954,y:351},{x:934,y:667},{x:770,y:231},{x:1173,y:233},{x:1093,y:534}],
+      solutionEdges: [ [0,1],[1,2],[1,3],[1,4],[2,5]]
     },
-    {coords: [ {x:397,y:140},{x:380,y:240},{x:384,y:296},{x:365,y:335},{x:367,y:370},{x:346,y:273},{x:310,y:261},{x:415,y:282},
-     {x:459,y:279}],
+    {coords: [ {x:1033,y:112},{x:976,y:312}, {x:992,y:444},{x:915,y:553},{x:922,y:676},{x:1130,y:409},{x:1263,y:409},{x:834,y:374},
+    {x:657,y:332}],
       solutionEdges: [ [0,1],[1,2],[2,3],[3,4],[2,5],[5,6],[2,7],[7,8] ]
-    },
-    {coords: [ {x:385,y:164},{x:374,y:348} ],
-      solutionEdges: [ [0,1] ]
     },
   
     // …继续添加其它关…
@@ -67,13 +67,13 @@ export default class Beifang extends Phaser.Scene {
 
   // 定义通关后要显示的图片 key 对应表  //
   this.endPairs = [
-    ['doumuxie1','doumuxie2'],
-    ['niujinniu1',  'niujinniu2'],
-    ['nvtufu1','nvtufu2'],
     ['xvrishu1','xvrishu2'],
     ['weiyueyan1',  'weiyueyan2'],
-    ['shihuozhu1','shihuozhu2'],
     ['bishuiyu1','bishuiyu2'],
+    ['nvtufu1','nvtufu2'],
+    ['doumuxie1',  'doumuxie2'],
+    ['niujinniu1','niujinniu2'],
+    ['shihuozhu1','shihuozhu2'],
     // …等
   ];
 
@@ -203,6 +203,10 @@ export default class Beifang extends Phaser.Scene {
     });
   });
 
+  this.completedLines = this.add.graphics();
+  this.dynamicLine    = this.add.graphics();
+  this.animatedLine   = this.add.graphics();
+
 
   this.currentLevel   = 0;
   this.initPuzzle();
@@ -211,65 +215,48 @@ export default class Beifang extends Phaser.Scene {
   }
 
 
- initPuzzle(){
-
-  this.dynamicLine    = this.add.graphics();
-  this.completedLines = this.add.graphics();
-
-    if (this.stars) {
-    this.stars.forEach(dot => dot.destroy());
+// —— 1. initPuzzle ——  
+initPuzzle() {
+  // 1) 清掉旧星星、旧线
+  if (this.stars) {
+    this.stars.forEach(d => d.destroy());
   }
-
-  // —— 2) 清空所有连线 —— 
   this.completedLines.clear();
   this.dynamicLine.clear();
 
-  // —— 2.5) 初始化本关需要的边集合 ——  
-const lvl = this.levels[this.currentLevel];
-this.requiredEdges = new Set(
-  lvl.solutionEdges.map(([a,b]) => {
-    // 把无向边 a–b 规范成 "小索引–大索引" 字符串
-    const [i,j] = a < b ? [a,b] : [b,a];
-    return `${i}-${j}`;
-  })
-);
-this.drawnEdges = new Set();
+  // 2) 生成“要画的边”集合 requiredEdges
+  const lvl = this.levels[this.currentLevel];
+  this.requiredEdges = new Set(
+    lvl.solutionEdges.map(([a,b]) => {
+      return a < b ? `${a}-${b}` : `${b}-${a}`;
+    })
+  );
+  // 2.1) 清掉已画过的记录
+  this.drawnEdges = new Set();
 
+  // 3) 重置绘制状态
+  this.isDrawing = false;
+  this.stars     = [];
 
-  // —— 3) 重置状态计数 —— 
-  this.stars            = [];
- 
-
-  // —— 4) 取出本关的数据 —— 
-
-  const coords          = lvl.coords;     // 坐标列表
-
-
-  // —— 5) 根据 coords 生成星星点并注册点击 —— 
-  coords.forEach((pos, idx) => {
-    const dot = this.add.circle(pos.x, pos.y, 
-                                 pos.radius || 8, 
-                                 pos.color  ||0xffffff)
+  // 4) 根据 coords 生成新星星并注册点击
+  lvl.coords.forEach((pos, idx) => {
+    const dot = this.add.circle(pos.x, pos.y, pos.radius||8, pos.color||0xffffff)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(30)
       .setInteractive({ useHandCursor: true });
-
-    // 点击第 idx 颗星时调用 onStarClick(idx)
     dot.on('pointerdown', () => this.onStarClick(idx));
-
     this.stars.push(dot);
+
+    // （可选）呼吸动画
     this.tweens.add({
       targets: dot,
-      alpha: {from:0.5, to: 1 },
+      alpha:  { from: 0.5, to: 1 },
+      ease:   'Sine.easeInOut',
       duration: 3000,
-      ease: 'Sine.easeInout',
-      yoyo:true,
+      yoyo:   true,
       repeat: -1
     });
-
-    });
-
- 
+  });
 }
 
 updateDynamicLine(pointer) {
@@ -282,118 +269,64 @@ updateDynamicLine(pointer) {
 }
 
 
- onStarClick(idx) {
-
-
+ // —— 2. onStarClick ——  
+onStarClick(idx) {
   const dot = this.stars[idx];
 
-  // 如果当前没有在画线，则本次点击为「起点点击」
+  // A. 如果还没在画线，先注册起点
   if (!this.isDrawing) {
-    this.startIdx = idx;
-    this.startPos = { x: dot.x, y: dot.y };
-    console.log('开始拖线');
-    // 
+    this.startIdx  = idx;
+    this.startPos  = { x: dot.x, y: dot.y };
     this.dynamicLine.clear();
-    // 3) 监听鼠标移动，动态画线
     this.input.on('pointermove', this.updateDynamicLine, this);
     this.isDrawing = true;
-
-    console.log('★ 开始画线，起点 idx=', idx);
+    console.log('★ 起点:', idx);
     return;
   }
 
-//B
+  // B. 已有起点，这次当终点
   this.input.off('pointermove', this.updateDynamicLine, this);
   this.dynamicLine.clear();
-//C
+  this.isDrawing = false;
+
+  // 规范 key
   const a = this.startIdx, b = idx;
   const edgeKey = a < b ? `${a}-${b}` : `${b}-${a}`;
-  console.log('试连边', edgeKey,
-    '需要吗?', this.requiredEdges.has(edgeKey),
-    '已画过?', this.drawnEdges.has(edgeKey));
 
-  // 如果不在 requiredEdges 或 已经画过，就 **只重置绘制状态**（不删静态线、不删 drawnEdges）
-  if (!this.requiredEdges.has(edgeKey) || this.drawnEdges.has(edgeKey)) {
-    this.isDrawing = false;      // 下一次点击就能当新起点
+  const ok  = this.requiredEdges.has(edgeKey);
+  const dup = this.drawnEdges.has(edgeKey);
+  console.log('试连', edgeKey, '需要?', ok, '重复?', dup);
+
+  // B1. 错或重复：只放弃本次，不清静态线
+  if (!ok || dup) {
+    console.log('✖ 放弃本次连线');
     return;
-}
-//D
-
-this.completedLines
-    .lineStyle(2, 0xffffff, 1)
-    .lineBetween(this.startPos.x, this.startPos.y, dot.x, dot.y);
-  this.drawnEdges.add(edgeKey);
- this.input.off('pointermove', this.updateDynamicLine, this);
-this.dynamicLine.clear();    // 可选：把画到一半的拖线也清掉
-this.isDrawing = false;
-
-  if (this.drawnEdges.size >= this.requiredEdges.size) {
-    console.log('🎉 通关啦！');
-
-  const cx = this.cameras.main.width  / 2;
-  const cy = this.cameras.main.height / 2;
-
-  const [ key1 , key2 ] = this.endPairs[this.currentLevel];
-    this.endSprite = this.add.image(cx -150, cy, key1)
-    .setOrigin(0.5)
-    .setAlpha(1);
-  this.endSprite2 = this.add.image(cx +150, cy,  key2)
-      .setOrigin(0.5)
-      .setAlpha(1);
-    const src = this.textures.get(key1).getSourceImage();
-    const desiredWidth = 300;
-    const scale = desiredWidth / src.width;
-    this.endSprite.setScale(scale)
-    this.endSprite2.setScale(scale);
-    this.tweens.add({
-      targets: [this.endSprite, this.endSprite2 ],
-      alpha:1,
-      scaleX:1,
-      scaleY:1,
-      ease: 'Back.easeOut',
-      duration:500,
-    });
-      this.time.delayedCall(0, () => {
-      this.input.once('pointerdown', () => {
-      this.completedLines.clear();
-      this.dynamicLine.clear();
-      this.endSprite.destroy();
-      this.endSprite2.destroy();
-      this.dissolveImage(key1, cx -150, cy, 8, 4);
-      this.dissolveImage(key2, cx + 150, cy,   8, 4);
-      this.time.delayedCall(1200, () => {
-        this.currentLevel++;
-        if (this.currentLevel < this.levels.length) {
-          this.initPuzzle();
-        } else {
-          const endImg = this.add.image(cx-100, cy+75, 'talk5')
-    .setOrigin(0.5)
-    .setAlpha(1)
-    .setScale(0.5)
-    .setInteractive({ useHandCursor: true });
-
-  // 2）给它加个淡入动画（可选）
-  this.tweens.add({
-    targets: endImg,
-    alpha: { from: 0, to: 1 },
-    duration: 600,
-    ease: 'Linear'
-  })
-        }
-      }, [], this);
-    });
-  });
-  return;
   }
 
-this.startIdx   = idx;
-this.startPos   = { x: dot.x, y: dot.y };
-this.dynamicLine.clear();
-this.input.on('pointermove', this.updateDynamicLine, this);
-this.isDrawing  = true;
+  // B2. 合法：刻到静态图层
+  this.completedLines
+    .lineStyle(2, 0xffffff, 1)
+    .lineBetween(
+      this.startPos.x, this.startPos.y,
+      dot.x, dot.y
+    );
+  this.drawnEdges.add(edgeKey);
+  console.log('✔ 已刻:', edgeKey);
 
+  // C. 通关判断
+  if (this.drawnEdges.size === this.requiredEdges.size) {
+    console.log('🎉 全部连完');
+    this.showEndLevel();
+    return;
+  }
 
- 
+  // D. 进入下一段
+  this.startIdx  = idx;
+  this.startPos  = { x: dot.x, y: dot.y };
+  this.dynamicLine.clear();
+  this.input.on('pointermove', this.updateDynamicLine, this);
+  this.isDrawing = true;
+  console.log('▶ 继续下一段');
 }
 
 
@@ -497,7 +430,58 @@ dissolveImage(key, cx, cy, step = 2, size = 1) {
       animG.clear();
     }
   });
+   }
+
+
+
+
+  // —— 3. showEndLevel ——  
+showEndLevel() {
+  const cx = this.cameras.main.width  / 2;
+  const cy = this.cameras.main.height / 2;
+  const [ key1, key2 ] = this.endPairs[this.currentLevel];
+
+  // 添加两张图，初始透明
+  this.endSprite  = this.add.image(cx - 150, cy, key1).setOrigin(0.5).setAlpha(0);
+  this.endSprite2 = this.add.image(cx + 150, cy, key2).setOrigin(0.5).setAlpha(0);
+
+  // 淡入+放大
+  this.tweens.add({
+    targets: [ this.endSprite, this.endSprite2 ],
+    alpha:    1, scaleX: 1, scaleY: 1,
+    ease:     'Back.easeOut',
+    duration: 500,
+    onComplete: () => {
+      // 等动画完，下一 tick 再注册真正的“消散+切关”点击
+      this.time.delayedCall(0, () => {
+        this.input.once('pointerdown', () => {
+          this.endSprite.destroy();
+          this.endSprite2.destroy();
+          this.dissolveImage(key1, cx -150, cy, 8, 4);
+          this.dissolveImage(key2, cx +150, cy, 8, 4);
+
+          this.time.delayedCall(1200, () => {
+            this.currentLevel++;
+            if (this.currentLevel < this.levels.length) {
+              this.initPuzzle();
+            } else {
+              // 全部通关后的最后逻辑
+              const endImg = this.add.image(cx -100, cy +75, 'talk5')
+                .setOrigin(0.5).setAlpha(0).setScale(0.5)
+                .setInteractive({ useHandCursor: true });
+              this.tweens.add({
+                targets: endImg,
+                alpha: { from: 0, to: 1 },
+                duration: 600
+              });
+            }
+          });
+        });
+      });
+    }
+  });
 }
+   }
 
 
 
@@ -505,4 +489,3 @@ dissolveImage(key, cx, cy, step = 2, size = 1) {
 
 
 
-}

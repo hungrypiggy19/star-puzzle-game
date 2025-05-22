@@ -102,7 +102,7 @@ export default class Scene4 extends Phaser.Scene {
 
    this.currentLevel = 0;
    this.levels = [
-  {coords: [ {x:594,y:483, radius:8}, {x:1175,y:490 ,radius:6} ],  // 关卡一的星星
+  {coords: [ {x:594,y:483, radius:12}, {x:1175,y:490 ,radius:8} ],  // 关卡一的星星
     solutionEdges: [[0, 1] ]                        
   },
   {coords: [ {x:796,y:312}, {x:961,y:357}, {x:1022,y:499} ],
