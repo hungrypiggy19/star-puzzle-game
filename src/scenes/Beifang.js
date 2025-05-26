@@ -95,12 +95,12 @@ export default class Beifang extends Phaser.Scene {
     const stars = this.add.image(this.centerX, this.centerY, 'stars')
     .setOrigin(0.5)
     .setDepth(0)
-    .setScale(1.3);
+    .setScale(1.5);
 
   this.tweens.add({
     targets: stars,
     angle:360,
-    duration: 30000,
+    duration: 60000,
     ease: 'Linear',
     repeat: -1
   });
@@ -379,62 +379,62 @@ onStarClick(idx) {
 
 
 
-dissolveImage(key, cx, cy, step = 2, size = 1) {
-    // --------- start of dissolveImage code ---------
-    // 1) 把整张图画到一个不可见的 RenderTexture 上
-    const src = this.textures.get(key).getSourceImage();
-    const rt  = this.add.renderTexture(0, 0, src.width, src.height)
-      .draw(key, 0, 0)
-      .setVisible(false);
+ dissolveImage(key, cx, cy, step = 64, size = 16) {
+  // 1) 原图淡出
+  const src = this.textures.get(key).getSourceImage();
+  const rt  = this.add.renderTexture(0, 0, src.width, src.height)
+    .draw(key, 0, 0)
+    .setVisible(false)
+    .setPosition(cx - src.width/2, cy - src.height/2);
+  this.tweens.add({ targets: rt, alpha: 0, duration: 200 });
 
-    rt.setPosition(cx - src.width/2, cy - src.height/2);
+  // 2) 取像素到 Canvas
+  const w = src.width, h = src.height;
+  const canvasKey = `canvas-${key}`;
+  const ctx = this.textures.createCanvas(canvasKey, w, h).getContext();
+  ctx.drawImage(src, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  this.textures.remove(canvasKey);
 
-    // 2) 让原图淡出
-    this.tweens.add({
-      targets: rt,
-      alpha: 0,
-      duration: 200
-    });
-
-    // 3) 从 RenderTexture 取像素到 Canvas
-    const canvasKey = `canvas-${key}`;
-    const w = src.width, h = src.height;
-    const ctx = this.textures.createCanvas(canvasKey, w, h).getContext();
-    ctx.drawImage(src, 0, 0);
-    const imgData = ctx.getImageData(0, 0, w, h).data;
-
-    // 4) 按 step 间隔遍历，生成小粒子并飞散
-    for (let y = 0; y < h; y += step) {
-      for (let x = 0; x < w; x += step) {
-        const i = (y * w + x) * 4;
-        const alpha = imgData[i+3];
-        if (alpha < 10) continue;
-        const color = (imgData[i] << 16) | (imgData[i+1] << 8) | imgData[i+2];
-        const px = cx - w/2 + x;
-        const py = cy - h/2 + y;
-
-        const dot = this.add.circle(px, py, size, color)
-          .setBlendMode(Phaser.BlendModes.ADD);
-
-        const angle = Phaser.Math.FloatBetween(0, Math.PI*2);
-        const dist  = Phaser.Math.Between(w/2, w);
-
-        this.tweens.add({
-          targets: dot,
-          x: px + Math.cos(angle) * dist,
-          y: py + Math.sin(angle) * dist,
-          alpha: 0,
-          duration: Phaser.Math.Between(1200, 1800),
-          ease: 'Cubic.easeOut',
-          onComplete: () => dot.destroy()
-        });
-      }
+  // 3) 收集所有透明度合格的候选点
+  const candidates = [];
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const alpha = data[(y * w + x) * 4 + 3];
+      if (alpha < 10) continue;
+      const r = data[(y*w + x)*4],
+            g = data[(y*w + x)*4+1],
+            b = data[(y*w + x)*4+2];
+      const color = (r<<16)|(g<<8)|b;
+      candidates.push({
+        x: cx - w/2 + x,
+        y: cy - h/2 + y,
+        color
+      });
     }
-
-    // 5) 删除临时 Canvas 纹理
-    this.textures.remove(canvasKey);
-    // --------- end of dissolveImage code ---------
   }
+
+  // 4) 随机打乱，只保留最多 200 个点
+  Phaser.Utils.Array.Shuffle(candidates);
+  const points = candidates.slice(0, 200);
+
+  // 5) 对每个采样点创建小圆并做飞散 Tween
+  points.forEach(({ x, y, color }) => {
+    const dot = this.add.circle(x, y, size, color)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const angle = Phaser.Math.FloatBetween(0, Math.PI*2);
+    const dist  = Phaser.Math.Between(w/2, w);
+    this.tweens.add({
+      targets: dot,
+      x:      x + Math.cos(angle)*dist,
+      y:      y + Math.sin(angle)*dist,
+      alpha:  0,
+      duration: Phaser.Math.Between(1500, 2000),
+      ease:     'Cubic.easeOut',
+      onComplete: () => dot.destroy()
+    });
+  });
+}
    
 
    drawAnimatedLine(x1, y1, x2, y2) {
@@ -515,8 +515,8 @@ showEndLevel() {
               this.initPuzzle();
             } else {
               // 全部通关后的最后逻辑
-              const endImg = this.add.image(cx -100, cy +75, 'talk5')
-                .setOrigin(0.5).setAlpha(0).setScale(0.5)
+              const endImg = this.add.image(cx -200, cy +110, 'talk5')
+                .setOrigin(0.5).setAlpha(0).setScale(0.9)
                 .setInteractive({ useHandCursor: true });
               this.tweens.add({
                 targets: endImg,

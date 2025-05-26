@@ -104,12 +104,12 @@ export default class Nanfang extends Phaser.Scene {
    const stars = this.add.image(this.centerX, this.centerY, 'stars')
     .setOrigin(0.5)
     .setDepth(0)
-    .setScale(1.3);
+    .setScale(1.5);
 
   this.tweens.add({
     targets: stars,
     angle:360,
-    duration: 30000,
+    duration: 60000,
     ease: 'Linear',
     repeat: -1
   });
@@ -524,8 +524,8 @@ showEndLevel() {
               this.initPuzzle();
             } else {
               // 全部通关后的最后逻辑
-              const endImg = this.add.image(cx -100, cy +75, 'talk5')
-                .setOrigin(0.5).setAlpha(0).setScale(0.5)
+              const endImg = this.add.image(cx -200, cy +110, 'talk5')
+                .setOrigin(0.5).setAlpha(0).setScale(0.9)
                 .setInteractive({ useHandCursor: true });
               this.tweens.add({
                 targets: endImg,
