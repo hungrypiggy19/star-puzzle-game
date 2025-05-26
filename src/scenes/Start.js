@@ -15,6 +15,8 @@ export class Start extends Phaser.Scene {
 
 create() {
   // 1) 背景 & 缩放（你已有，无需改动）
+
+ 
   const bg = this.add.image(960, 540, 'start_bg').setOrigin(0.5);
   const scale = Math.min(
     this.cameras.main.width  / bg.width,

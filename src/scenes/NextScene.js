@@ -72,8 +72,11 @@ this.input.once('pointerdown', () => {
   .setDepth(10);
 
 returnBtn.on('pointerdown', () => {
-  this.scene.start('StartScene');  // ← 用你在 main.js 里给 Game.js 定义的 scene key
+  // 用 SoundManager 直接按 key 停掉，不用再管 this.backgroundMusic 有没有
+  this.sound.stopByKey('bgm');
+  this.scene.start('StartScene');
 });
+  
 
 
 

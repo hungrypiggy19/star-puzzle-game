@@ -14,11 +14,15 @@ export default class Game extends Phaser.Scene {
   create() {
      
 
-     this.backgroundMusic = this.sound.add('bgm', {
+  this.backgroundMusic = this.sound.add('bgm', {
     loop: true,
-    volume: 0.5      // 音量 0.0–1.0，可按需调节
+    volume: 1      // 音量 0.0–1.0，可按需调节
   });
   this.backgroundMusic.play();
+
+
+
+
 
 
 

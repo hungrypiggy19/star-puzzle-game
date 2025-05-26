@@ -25,6 +25,7 @@ export default class Beifang extends Phaser.Scene {
     this.load.image('weiyueyan2',  'assets/bei/weiyueyan2.png');
     this.load.image('xvrishu1', 'assets/bei/xvrishu1.png');
     this.load.image('xvrishu2', 'assets/bei/xvrishu2.png');
+    this.load.image('map', 'assets/map.png');
   }
 
   create() {
@@ -201,6 +202,53 @@ export default class Beifang extends Phaser.Scene {
       ease: 'Power1',
       duration: 800
     });
+  });
+
+  const mapOrigX     = 20;                                     // 距左边 20px
+  const mapOrigY     = this.cameras.main.height - 20;         // 距底部 20px
+  const mapOrigScale = 0.2;                                   // 初始缩放
+  const mapZoomScale = 1.0;                                   // 点击后放到 100%
+  const mapCenterX   = this.cameras.main.width  / 2;
+  const mapCenterY   = this.cameras.main.height / 2;
+
+  // 2) 创建 map 精灵
+  this.mapSprite = this.add.image(mapOrigX, mapOrigY, 'map')
+    .setOrigin(0, 1)               // 左下角对齐
+    .setScale(mapOrigScale)
+    .setDepth(5)
+    .setInteractive({ useHandCursor: true });
+
+  // 3) 状态标志
+  this.mapZoomed = false;
+
+  // 4) 点击切换放大/还原
+  this.mapSprite.on('pointerdown', () => {
+    if (!this.mapZoomed) {
+      // 放大到中间并提层
+      this.mapSprite.setDepth(1000);
+      this.tweens.add({
+        targets: this.mapSprite,
+        x:     mapCenterX - 350,
+        y:     mapCenterY + 650,
+        scale: mapZoomScale,
+        ease:  'Back.easeOut',
+        duration: 500
+      });
+    } else {
+      // 缩回原位并恢复层级
+      this.tweens.add({
+        targets: this.mapSprite,
+        x:     mapOrigX,
+        y:     mapOrigY,
+        scale: mapOrigScale,
+        ease:  'Back.easeIn',
+        duration: 500,
+        onComplete: () => {
+          this.mapSprite.setDepth(5);
+        }
+      });
+    }
+    this.mapZoomed = !this.mapZoomed;
   });
 
   this.completedLines = this.add.graphics();
@@ -442,13 +490,14 @@ showEndLevel() {
   const [ key1, key2 ] = this.endPairs[this.currentLevel];
 
   // 添加两张图，初始透明
-  this.endSprite  = this.add.image(cx - 150, cy, key1).setOrigin(0.5).setAlpha(0);
-  this.endSprite2 = this.add.image(cx + 150, cy, key2).setOrigin(0.5).setAlpha(0);
+  this.endSprite  = this.add.image(cx - 300, cy, key1).setOrigin(0.5).setAlpha(0);
+  this.endSprite2 = this.add.image(cx + 300, cy, key2).setOrigin(0.5).setAlpha(0);
+   this.endSprite2.setScale(2);
 
   // 淡入+放大
   this.tweens.add({
     targets: [ this.endSprite, this.endSprite2 ],
-    alpha:    1, scaleX: 1, scaleY: 1,
+    alpha:    1, 
     ease:     'Back.easeOut',
     duration: 500,
     onComplete: () => {

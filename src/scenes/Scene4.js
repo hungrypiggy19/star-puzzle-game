@@ -24,6 +24,8 @@ export default class Scene4 extends Phaser.Scene {
             this.load.image('xinyuehu1','assets/xinyuehu1.png');
             this.load.image('xinyuehu2','assets/xinyuehu2.png');
             this.load.image('talk5','assets/talk5.png');
+            this.load.image('particleDot', 'assets/particle-dot.png');
+            this.load.image('map', 'assets/map.png');
 
     
   }
@@ -181,63 +183,111 @@ export default class Scene4 extends Phaser.Scene {
       duration: 800
     });
   });
-  }
-   dissolveImage(key, cx, cy, step = 32, size = 6) {
-    // --------- start of dissolveImage code ---------
-    // 1) 把整张图画到一个不可见的 RenderTexture 上
-    const src = this.textures.get(key).getSourceImage();
-    const rt  = this.add.renderTexture(0, 0, src.width, src.height)
-      .draw(key, 0, 0)
-      .setVisible(false);
 
-    rt.setPosition(cx - src.width/2, cy - src.height/2);
+  // 1) 定义原位和缩放
+  const mapOrigX     = 20;                                     // 距左边 20px
+  const mapOrigY     = this.cameras.main.height - 20;         // 距底部 20px
+  const mapOrigScale = 0.2;                                   // 初始缩放
+  const mapZoomScale = 1.0;                                   // 点击后放到 100%
+  const mapCenterX   = this.cameras.main.width  / 2;
+  const mapCenterY   = this.cameras.main.height / 2;
 
-    // 2) 让原图淡出
-    this.tweens.add({
-      targets: rt,
-      alpha: 0,
-      duration: 200
-    });
+  // 2) 创建 map 精灵
+  this.mapSprite = this.add.image(mapOrigX, mapOrigY, 'map')
+    .setOrigin(0, 1)               // 左下角对齐
+    .setScale(mapOrigScale)
+    .setDepth(5)
+    .setInteractive({ useHandCursor: true });
 
-    // 3) 从 RenderTexture 取像素到 Canvas
-    const canvasKey = `canvas-${key}`;
-    const w = src.width, h = src.height;
-    const ctx = this.textures.createCanvas(canvasKey, w, h).getContext();
-    ctx.drawImage(src, 0, 0);
-    const imgData = ctx.getImageData(0, 0, w, h).data;
+  // 3) 状态标志
+  this.mapZoomed = false;
 
-    // 4) 按 step 间隔遍历，生成小粒子并飞散
-    for (let y = 0; y < h; y += step) {
-      for (let x = 0; x < w; x += step) {
-        const i = (y * w + x) * 4;
-        const alpha = imgData[i+3];
-        if (alpha < 10) continue;
-        const color = (imgData[i] << 16) | (imgData[i+1] << 8) | imgData[i+2];
-        const px = cx - w/2 + x;
-        const py = cy - h/2 + y;
-
-        const dot = this.add.circle(px, py, size, color)
-          .setBlendMode(Phaser.BlendModes.ADD);
-
-        const angle = Phaser.Math.FloatBetween(0, Math.PI*2);
-        const dist  = Phaser.Math.Between(w/2, w);
-
-        this.tweens.add({
-          targets: dot,
-          x: px + Math.cos(angle) * dist,
-          y: py + Math.sin(angle) * dist,
-          alpha: 0,
-          duration: Phaser.Math.Between(1200, 1800),
-          ease: 'Cubic.easeOut',
-          onComplete: () => dot.destroy()
-        });
-      }
+  // 4) 点击切换放大/还原
+  this.mapSprite.on('pointerdown', () => {
+    if (!this.mapZoomed) {
+      // 放大到中间并提层
+      this.mapSprite.setDepth(1000);
+      this.tweens.add({
+        targets: this.mapSprite,
+        x:     mapCenterX - 350,
+        y:     mapCenterY + 650,
+        scale: mapZoomScale,
+        ease:  'Back.easeOut',
+        duration: 500
+      });
+    } else {
+      // 缩回原位并恢复层级
+      this.tweens.add({
+        targets: this.mapSprite,
+        x:     mapOrigX,
+        y:     mapOrigY,
+        scale: mapOrigScale,
+        ease:  'Back.easeIn',
+        duration: 500,
+        onComplete: () => {
+          this.mapSprite.setDepth(5);
+        }
+      });
     }
-
-    // 5) 删除临时 Canvas 纹理
-    this.textures.remove(canvasKey);
-    // --------- end of dissolveImage code ---------
+    this.mapZoomed = !this.mapZoomed;
+  });
   }
+   dissolveImage(key, cx, cy, step = 64, size = 16) {
+  // 1) 原图淡出
+  const src = this.textures.get(key).getSourceImage();
+  const rt  = this.add.renderTexture(0, 0, src.width, src.height)
+    .draw(key, 0, 0)
+    .setVisible(false)
+    .setPosition(cx - src.width/2, cy - src.height/2);
+  this.tweens.add({ targets: rt, alpha: 0, duration: 200 });
+
+  // 2) 取像素到 Canvas
+  const w = src.width, h = src.height;
+  const canvasKey = `canvas-${key}`;
+  const ctx = this.textures.createCanvas(canvasKey, w, h).getContext();
+  ctx.drawImage(src, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  this.textures.remove(canvasKey);
+
+  // 3) 收集所有透明度合格的候选点
+  const candidates = [];
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const alpha = data[(y * w + x) * 4 + 3];
+      if (alpha < 10) continue;
+      const r = data[(y*w + x)*4],
+            g = data[(y*w + x)*4+1],
+            b = data[(y*w + x)*4+2];
+      const color = (r<<16)|(g<<8)|b;
+      candidates.push({
+        x: cx - w/2 + x,
+        y: cy - h/2 + y,
+        color
+      });
+    }
+  }
+
+  // 4) 随机打乱，只保留最多 200 个点
+  Phaser.Utils.Array.Shuffle(candidates);
+  const points = candidates.slice(0, 200);
+
+  // 5) 对每个采样点创建小圆并做飞散 Tween
+  points.forEach(({ x, y, color }) => {
+    const dot = this.add.circle(x, y, size, color)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const angle = Phaser.Math.FloatBetween(0, Math.PI*2);
+    const dist  = Phaser.Math.Between(w/2, w);
+    this.tweens.add({
+      targets: dot,
+      x:      x + Math.cos(angle)*dist,
+      y:      y + Math.sin(angle)*dist,
+      alpha:  0,
+      duration: Phaser.Math.Between(1500, 2000),
+      ease:     'Cubic.easeOut',
+      onComplete: () => dot.destroy()
+    });
+  });
+}
   // … 其他方法，例如 updateDynamicLine、initPuzzle …
 
   
@@ -404,7 +454,7 @@ updateDynamicLine(pointer) {
   });
 }
 
-// —— 3. showEndLevel ——  
+// —— 1. showEndLevel ——  
 showEndLevel() {
   const cx = this.cameras.main.width  / 2;
   const cy = this.cameras.main.height / 2;
@@ -413,10 +463,7 @@ showEndLevel() {
   // 添加两张图，初始透明
   this.endSprite  = this.add.image(cx - 300, cy, key1).setOrigin(0.5).setAlpha(0);
   this.endSprite2 = this.add.image(cx + 300, cy, key2).setOrigin(0.5).setAlpha(0);
-
-  this.endSprite2.setScale(2);
-
- 
+   this.endSprite2.setScale(2);
 
   // 淡入+放大
   this.tweens.add({
@@ -439,7 +486,7 @@ showEndLevel() {
               this.initPuzzle();
             } else {
               // 全部通关后的最后逻辑
-              const endImg = this.add.image(cx -200, cy +120, 'talk5')
+              const endImg = this.add.image(cx -200, cy +110, 'talk5')
                 .setOrigin(0.5).setAlpha(0).setScale(0.9)
                 .setInteractive({ useHandCursor: true });
               this.tweens.add({
