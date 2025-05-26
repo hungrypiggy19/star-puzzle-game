@@ -83,13 +83,13 @@ export default class Scene4 extends Phaser.Scene {
    const stars = this.add.image(this.centerX, this.centerY, 'stars')
     .setOrigin(0.5)
     .setDepth(0)
-    .setScale(1.3);
+    .setScale(1.5);
     
 
   this.tweens.add({
     targets: stars,
     angle:360,
-    duration: 30000,
+    duration: 60000,
     ease: 'Linear',
     repeat: -1
   });
@@ -209,8 +209,8 @@ export default class Scene4 extends Phaser.Scene {
       this.mapSprite.setDepth(1000);
       this.tweens.add({
         targets: this.mapSprite,
-        x:     mapCenterX - 350,
-        y:     mapCenterY + 650,
+        x:     mapCenterX - 850,
+        y:     mapCenterY + 550,
         scale: mapZoomScale,
         ease:  'Back.easeOut',
         duration: 500
