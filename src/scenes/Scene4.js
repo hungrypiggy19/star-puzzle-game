@@ -321,8 +321,12 @@ initPuzzle() {
     const dot = this.add.circle(pos.x, pos.y, pos.radius||8, pos.color||0xffffff)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(30)
-      .setInteractive({ useHandCursor: true });
-    dot.on('pointerdown', () => this.onStarClick(idx));
+dot.setInteractive({
+  hitArea: new Phaser.Geom.Circle(0, 0, 40),
+  hitAreaCallback: Phaser.Geom.Circle.Contains,
+  useHandCursor: true
+})
+.on('pointerdown', () => this.onStarClick(idx));
     this.stars.push(dot);
 
     // （可选）呼吸动画
