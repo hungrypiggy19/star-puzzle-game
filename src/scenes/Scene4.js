@@ -182,7 +182,7 @@ export default class Scene4 extends Phaser.Scene {
     });
   });
   }
-   dissolveImage(key, cx, cy, step = 2, size = 1) {
+   dissolveImage(key, cx, cy, step = 32, size = 6) {
     // --------- start of dissolveImage code ---------
     // 1) 把整张图画到一个不可见的 RenderTexture 上
     const src = this.textures.get(key).getSourceImage();
@@ -411,13 +411,17 @@ showEndLevel() {
   const [ key1, key2 ] = this.endPairs[this.currentLevel];
 
   // 添加两张图，初始透明
-  this.endSprite  = this.add.image(cx - 150, cy, key1).setOrigin(0.5).setAlpha(0);
-  this.endSprite2 = this.add.image(cx + 150, cy, key2).setOrigin(0.5).setAlpha(0);
+  this.endSprite  = this.add.image(cx - 300, cy, key1).setOrigin(0.5).setAlpha(0);
+  this.endSprite2 = this.add.image(cx + 300, cy, key2).setOrigin(0.5).setAlpha(0);
+
+  this.endSprite2.setScale(2);
+
+ 
 
   // 淡入+放大
   this.tweens.add({
     targets: [ this.endSprite, this.endSprite2 ],
-    alpha:    1, scaleX: 1, scaleY: 1,
+    alpha:    1, 
     ease:     'Back.easeOut',
     duration: 500,
     onComplete: () => {
@@ -435,8 +439,8 @@ showEndLevel() {
               this.initPuzzle();
             } else {
               // 全部通关后的最后逻辑
-              const endImg = this.add.image(cx -100, cy +75, 'talk5')
-                .setOrigin(0.5).setAlpha(0).setScale(0.5)
+              const endImg = this.add.image(cx -200, cy +120, 'talk5')
+                .setOrigin(0.5).setAlpha(0).setScale(0.9)
                 .setInteractive({ useHandCursor: true });
               this.tweens.add({
                 targets: endImg,
